@@ -1,0 +1,133 @@
+---
+output: html_document
+keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(Hmisc)
+library(plotly)
+library(knitr)
+library(treemap)
+library(d3Tree)
+library(rmarkdown)
+# Read in agency personnel spending data set
+agency_data <- readRDS(file="C:\\Users\\scastr01\\Desktop\\Spending Data\\Output\\2-3 data-agencyspendpiechart.RData")
+agency_data <- agency_data[order(-agency_data$x),]
+
+# Choropleth data
+# all agency
+state_counts <- readRDS(file="C:\\Users\\scastr01\\Desktop\\Spending Data\\Output\\9-1 AllAgencyEmployeeChoroData.RData")
+# Occupation data for treemap
+occupation_counts <- readRDS(file="C:\\Users\\scastr01\\Desktop\\Spending Data\\Output\\4-2 All Agency_Occupation_Counts_long.RData")
+```
+
+## Government-wide Personnel Spending Tool
+<center>**Connecting USAspending and federal employment data to visualize how personnel obligations across the federal governments budget translates to staffing across the government.**
+</center>
+
+###How do agency staffs compare?
+A total $350 billion dollars in personnel compensation and benefits have been obligated government-wide. Figure 1 shows how government-wide personnel compensation and benefits spending is spread across all agencies, with the largest proportion of personnel spending dedicated to the Department of Defense and the Department of Agriculture. 
+
+<center>
+```{r piechart, echo=FALSE}
+knitr::opts_chunk$set(fig.width = 6, fig.height = 5, echo = FALSE, strip.white = FALSE)
+multiC <- c("#14333d", "#1D4A58", "#185661", "#1E6C7A", "#34ABA1", "#12B7B4", 
+            "#1EDFCC", "#46C0A0", 
+           "#65D59A",  "#a2e5c2", "#B7F885", "#8CC96D", "#3c7f5c",
+           "#2D1925", "#38202D", "#433043", "#4A425A", "#5f4c56", "#877981", "#199199")
+  textform <- list(
+  family="Open Sans", 
+  size = 12)
+plot_ly(agency_data, labels= ~toptier_agency.abbreviation, values= ~x, type='pie', hole=.5,
+        textposition="inside",
+        textinfo = "label",
+        insidetextfont=list(color="#ffffff", family="Arial"),
+        hoverinfo = "text", 
+        text= ~paste(Group.1, "\n",
+                     percent_c.x, "%", "\n",
+                     "Personnel Obligations: $", obligations, "million"), 
+        marker=list(colors=multiC, 
+                    line=list(color="#e7f5f9", width=1)))  %>%
+  layout(title="Figure 1: Personnel Budgets Across Government", font= list(size=12, color="#2c2c2c"),
+         xaxis=list(showgrid=FALSE, zeroline=FALSE, showticklabels=FALSE),
+         yaxis=list(showgrid=FALSE, zeroline=FALSE, showticklabels=FALSE)) 
+
+```
+</center>
+###Where are employees located?
+The Government employs staff across the nation, with the largest number of employees located in the District of Columbia, California, Virginia, and Maryland. Over 370 thousand government employees are located in the District of Columbia, Maryland, and Virginia.
+
+<center>
+```{r choro, fig.height=5, fig.width=10}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE) 
+# Create Plotly Choropleth
+g <- list(scope="usa", projection=list(type="albers usa"), showframe=FALSE, showlakes=TRUE, lakecolor=toRGB('lightblue'), showcoastlines=TRUE)
+
+plot_geo(state_counts[which(state_counts$agency=="All Agencies"),], z=state_counts$`Work Status All`, text= ~paste(state_counts$State.name),
+         locations= state_counts$abbreviation,   
+         type="choropleth", locationmode="USA-states", color=state_counts$`Work Status All`, 
+         colors="Blues") %>%
+  colorbar(title="Number of Employees") %>%
+  layout(title="Figure 2: Government (All Agencies) Employees By State", geo=g, font=list(size=12, color="#2c2c2c"))
+
+```
+</center>
+  
+###What do employees do?
+Figure 3 shows how employees across the goverment make up each agency. Each agency's workforce is further separated by occupational category, which groups related occupations by function.  
+  
+<center>
+```{r 2leveltreemap, echo=FALSE}
+treemap(occupation_counts, 
+        index = c("abbreviation", "occupationtitle"),
+        vSize = "count", 
+        type= "index",
+        vColor = "count",
+        palette = c("#655574", "#5F6282", "#15202A", "#1C2B37", "#233645", 
+                    "#2A4253", "#304E61",
+                    "#375B6F", "#3D687E", "#44758D", "#4A829C", "#4F90AB",
+                    "#559FBB", "#5AADCA", "#5FBCDA", "#64CBEA", "#68DAF9",
+                    "#546F8D", "#477C96", "#388A9A", "#2D969A", "#2CA297", 
+                    "#3AAD8F", "#51B786", "#6CC17A", "#8AC96E", "#AACF64"), 
+        title = "Figure 3(a): Government Employees by Occupation", 
+        bg.labels = NA,
+        fontcolor.labels = "#ffffff",
+        border.col = c("#2c2c2c", "#6e747e"),
+        border.lwds = c(1.75, .20),
+        lowerbound.cex.labels = .7,
+        overlap.labels = 0,
+        align.labels = list(c("left", "top"), c("left", "bottom")),
+        force.print.labels = FALSE) 
+```
+</center>
+<center>
+```{r 1leveltreemap, echo=FALSE}
+treemap(occupation_counts, 
+        index = c("occupationtitle"),
+        vSize = "count", 
+        type= "index",
+        vColor = "count",
+        palette = c("#655574", "#5F6282", "#15202A", "#1C2B37", "#233645", 
+                    "#2A4253", "#304E61",
+                    "#375B6F", "#3D687E", "#44758D", "#4A829C", "#4F90AB",
+                    "#559FBB", "#5AADCA", "#5FBCDA", "#64CBEA", "#68DAF9",
+                    "#546F8D", "#477C96", "#388A9A", "#2D969A", "#2CA297", 
+                   "#3AAD8F", "#51B786", "#6CC17A", "#8AC96E", "#AACF64"), 
+        title = "Figure 3(b): Government Employees by Occupation", 
+        fontcolor.labels = "#ffffff",
+        bg.labels = NA,
+        border.col = "#2c2c2c",
+        border.lwds = 1,
+        fontsize.labels = 9,
+        align.labels = c("left", "top"),  
+        lowerbound.cex.labels = .5, 
+        overlap.labels = .1)  
+```
+</center>
+***
+####How this analysis was conducted:  
+This analysis was conducted using federal agency obligations data reported to api.USAspending.gov, which is available to the public, and agency employment data made available by the Office of Personnel Management at FedScope.OPM.gov. Personnel obligations data was used to identify the relative cost of personnel compensation across the government and for each major agency. FedScope employment data was used to verify the personnel data reported to USAspending and evaluate the distribution of employees across the country. Fedscope data was also used to determine the composition of government employees, as well as for the agency specific staff profiles. R was used to join, evaluate, and create the visualizations in this analysis.
+  
+#####Analysis Resources:  
+[Fedscope.opm.gov]
